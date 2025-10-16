@@ -1,0 +1,72 @@
+# .github/workflows/ci.yml
+# -----------------------
+# Simple GitHub Actions workflow for Next.js 15
+# What it does: on push (to main), on PR, or manual run it will:
+# 1) checkout code, 2) setup Node, 3) install dependencies, 4) lint (optional),
+# 5) build, 6) run tests.
+# Each line below has an inline comment explaining its purpose.
+
+name: Next.js CI                           # Workflow ka display name in GitHub Actions UI
+
+# When the workflow should run:
+on: 
+  push:                                   # jab repo me push ho
+    branches: [ main ]                     # sirf `main` branch pe push hone par chalega
+  pull_request:                            # jab koi pull request banti ho
+    branches: [ main ]                     # jo target ho `main` branch
+  workflow_dispatch: {}                    # manual trigger option (Actions tab se run kar sakte ho)
+
+# Define jobs (a job runs on a runner)
+jobs:
+  build-and-test:                          # job ka naam (tum kuch bhi rakh sakte ho)
+    runs-on: ubuntu-latest                 # runner environment: GitHub hosted Ubuntu VM
+
+    # Steps: job ke andar sequential commands / actions
+    steps:
+      - name: Checkout repository                                   # step name (UI me dikhai dega)
+        uses: actions/checkout@v4                                   # official action: repo ka code runner pe laata hai
+        # Why: bina code ke kuch nahi run kar paoge. checkout clone kar deta hai current commit.
+
+      - name: Setup Node.js 20                                       # set up Node environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20                                          # Node version (Next.js 15 ke liye Node 18+ required; 20 safe choice)
+          cache: 'npm'                                              # npm cache enable karna (faster installs)
+        # Why: Node installed hona zaruri hai for npm, build, tests. cache se subsequent runs faster hote hai.
+
+      - name: Install dependencies                                   # install dependencies
+        run: npm ci                                                 # CI-friendly install (uses package-lock.json)
+        # Why: `npm ci` reproducible, fast and preferred in CI (it removes node_modules and installs exact versions).
+
+      - name: Save node modules size (optional debug)                # optional -- helps debugging build failures
+        run: du -sh node_modules || true
+        # Why: agar build fail ho to pata chale kitna space/size use ho raha hai. '|| true' ensures step won't fail pipeline.
+
+      - name: Lint (style + errors)                                  # lint step
+        run: npm run lint || true                                   # agar lint fail ho jaye to pipeline continue ho (optional)
+        # Why: lint se code quality check hoti hai. '|| true' lagaya isliye ki lint warnings se build block na ho.
+
+      - name: Build project                                           # Next.js production build
+        run: npm run build
+        # Why: ye step confirm karta hai ki production build successful hai. Agar build fail hua to pipeline yahin fail ho jayega.
+
+      - name: Run tests                                               # run unit/integration tests
+        run: npm test
+        # Why: automated tests run karke ensure karte hain ki changes se kuch break nahi hua.
+        # Make sure package.json me tests configured ho (jest/vitest/mocha etc.). Agar test command missing hai, ye step fail karega.
+
+      - name: Upload build logs (artifact)                            # optional: save build output/logs for inspection
+        if: failure()                                                # sirf jab koi previous step fail ho
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: .next || .                                       
+        # Why: agar build fail ho to tum logs/artifacts download karke locally inspect kar sakte ho.
+
+# Notes (not part of workflow execution):
+# - If your branch name is 'master' change branches: [ main ] to [ master ].
+# - This workflow only does CI (install/build/test). Since you said you don't have a server,
+#   I did not add a deploy step. Later, when you have a host (Vercel / VPS / Docker registry),
+#   you can add a deploy step (using secrets for tokens).
+# - To manually run: go to Actions -> Next.js CI -> Run workflow.
+# - To debug failures: open Actions -> run -> click failing job -> expand step to see logs.
