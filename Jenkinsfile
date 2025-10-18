@@ -1,6 +1,13 @@
 pipeline {
   agent any
 
+  triggers {
+    // Poll GitHub every minute for changes
+    pollSCM('* * * * *')
+    // Or use GitHub webhook (recommended)
+    githubPush()
+  }
+
   stages {
     stage('Checkout Code') {
       steps {
@@ -25,6 +32,17 @@ pipeline {
         sh 'npm run build'
       }
     }
+
+    stage('Deploy') {
+      steps {
+        echo 'Deploying application...'
+        // Add your deployment commands here
+        // Examples:
+        // sh 'pm2 restart nextjs-app'
+        // sh 'docker build -t nextjs-app .'
+        // sh 'kubectl apply -f k8s/'
+      }
+    }
   }
 
   post {
@@ -33,6 +51,9 @@ pipeline {
     }
     failure {
       echo '❌ Build failed!'
+    }
+    always {
+      echo 'Pipeline completed'
     }
   }
 }
