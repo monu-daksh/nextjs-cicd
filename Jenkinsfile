@@ -1,9 +1,8 @@
 pipeline {
   agent any
 
-  triggers {
-    // Poll GitHub every minute for changes (works with localhost)
-    pollSCM('* * * * *')
+  tools {
+    nodejs "Node18"  // Name you gave in Global Tool Config
   }
 
   stages {
@@ -15,13 +14,7 @@ pipeline {
 
     stage('Install Dependencies') {
       steps {
-        sh 'npm install'
-      }
-    }
-
-    stage('Run Tests') {
-      steps {
-        sh 'npm test || echo "No tests found"'
+        sh 'npm ci || npm install'
       }
     }
 
@@ -31,27 +24,16 @@ pipeline {
       }
     }
 
-    stage('Deploy') {
+    stage('Run Tests') {
       steps {
-        echo 'Deploying application...'
-        // Add your deployment commands here
-        // Examples:
-        // sh 'pm2 restart nextjs-app'
-        // sh 'docker build -t nextjs-app .'
-        // sh 'kubectl apply -f k8s/'
+        sh 'npm test || echo "No tests found"'
       }
     }
   }
 
   post {
-    success {
-      echo '✅ Build successful!'
-    }
-    failure {
-      echo '❌ Build failed!'
-    }
-    always {
-      echo 'Pipeline completed'
-    }
+    success { echo '✅ Build successful!' }
+    failure { echo '❌ Build failed!' }
+    always { echo 'Pipeline completed' }
   }
 }
