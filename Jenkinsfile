@@ -2,10 +2,8 @@ pipeline {
   agent any
 
   triggers {
-    // Poll GitHub every minute for changes
+    // Poll GitHub every minute for changes (works with localhost)
     pollSCM('* * * * *')
-    // Or use GitHub webhook (recommended)
-    githubPush()
   }
 
   stages {
